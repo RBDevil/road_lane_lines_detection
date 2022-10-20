@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import cv2
 import image_processor
 
-video = cv2.VideoCapture('dashcam_video4.mp4')
+video = cv2.VideoCapture('dashcam_video3.mp4')
 
 while(video.isOpened()):
     ret, frame = video.read()
