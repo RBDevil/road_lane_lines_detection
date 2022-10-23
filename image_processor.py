@@ -1,7 +1,6 @@
-from turtle import right
+from types import NoneType
 import cv2
 import numpy as np
-import matplotlib as plt
 
 def region_of_interest(image, vertices):
     mask = np.zeros_like(image)
@@ -25,42 +24,54 @@ def sort_lines_by_side(line_vectors):
 
     for line in line_vectors:
         for x1, y1, x2, y2 in line:
-            vx = x1 - x2
-            vy = y1 - y2
-            print(vx, vy)
-            if ((vx > 0 and vy > 0) or (vx < 0 and vy < 0)):
-                left_lines.append([[x1, y1, x2, y2]])
+            a, b = create_line(x1, y1, x2, y2)
+            if (a > 0):
+                left_lines.append([a, b])
             else:
-                if ((vx < 0 and vy > 0) or (vx > 0 and vy < 0)):
-                    right_lines.append([[x1, y1, x2, y2]])
+                if (a < 0):
+                    right_lines.append([a, b])
 
-    print('left lines:')
-    print(left_lines)
-    print('right_lines:')
-    print(right_lines)
     return left_lines, right_lines
 
 def average_lines(line_vectors):
-    x1_sum = 0
-    y1_sum = 0
-    x2_sum = 0
-    y2_sum = 0
+    sum_a = 0
+    sum_b = 0
 
     for line in line_vectors:
-        for x1, y1, x2, y2 in line:
-            x1_sum += x1
-            y1_sum += y1
-            x2_sum += x2
-            y2_sum += y2
+        for a, b in line:
+            sum_a += a
+            sum_b += b
 
-    if (len(line_vectors) != 0):
-        x1_avg = round(x1_sum / len(line_vectors))
-        y1_avg = round(y1_sum / len(line_vectors))
-        x2_avg = round(x2_sum / len(line_vectors))
-        y2_avg = round(y2_sum / len(line_vectors))
+    count = len(line_vectors[0])
+    if (count != 0):
+        return sum_a / count, sum_b / count
     else:
-        return [[0,0,0,0]]
-    return [[x1_avg, y1_avg, x2_avg, y2_avg]]
+        return 0, 0
+
+def create_line(x1, y1, x2, y2):
+    if (x2 != x1):
+        a = (y2 - y1) / (x2 - x1)
+        b = (x2 * y1 - x1 * y2) / (x2 - x1)
+        return a, b
+    else:
+        return 0, 0
+
+def get_points_from_line(a, b, image):
+    height = image.shape[0]
+
+    if (a != 0):
+        y1 = height
+        x1 = (y1 - b) / a
+
+        y2 = height / 3 * 2
+        x2 = (y2 - b) / a
+
+        return [round(x1), round(y1), round(x2), round(y2)]
+
+    else:
+        return [0,0,0,0]
+
+
 
 def process_image(image):
     original_image = np.copy(image)
@@ -72,9 +83,10 @@ def process_image(image):
     width = image.shape[1]
 
     region_of_interest_vertices = [
-        (0 + width/6, height), 
-        (width/2, height/3 * 2),
-        (width - width/6, height)
+        (width/5, height), 
+        (width*2/5, height/3*2),
+        (width*3/5, height/3*2),
+        (width - width*1/5, height)
         ]
 
     canny_image = region_of_interest(image, 
@@ -92,8 +104,12 @@ def process_image(image):
     )
 
     left_lines, right_lines = sort_lines_by_side(lines)
-    left_line = average_lines(left_lines)
-    right_line = average_lines(right_lines)
+    a, b = average_lines([left_lines])
+    left_line = get_points_from_line(a, b, image)
+    a, b = average_lines([right_lines])
+    right_line = get_points_from_line(a, b, image)
 
-    return draw_lines(original_image, [left_line, right_line])
+
+    
+    return draw_lines(original_image, [[left_line, right_line]])
     #return draw_lines(original_image, lines)
